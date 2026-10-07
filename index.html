@@ -1611,7 +1611,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const model = {beta:0.002, lambda:0.02, vbl:0.7, high:8, vh:5.312, vl:-2.369, sense:1e-7};
     let bits=[1,1,1,0], vlow=5.3, sigma=0.15, seed=42;
     let count=0, reads=0, history=[], phase=-1, running=false, timer=null, sample=null, committed=false;
-    let svg=null, channelX=0, rows=[], topY=85, rowPitch=52, width=700;
+    let svg=null, channelX=0, rows=[], topY=108, rowPitch=46, pairStride=138, width=700;
     const svgNS=&#x27;http://www.w3.org/2000/svg&#x27;;
     function rand(){seed=(Math.imul(1664525,seed)+1013904223)&gt;&gt;&gt;0;return seed/4294967296;}
     function zSample(){let z=-6;for(let j=0;j&lt;12;j++)z+=rand();return Math.max(-2,Math.min(2,z));}
@@ -1671,39 +1671,38 @@ html&gt;body{padding:0}&lt;/style&gt;
       const compact=width&lt;500;
       channelX=compact?Math.round(width*0.52):Math.round(width*0.47);
       const gateLeft=compact?8:24, right=channelX+42;
-      const h=topY+8*rowPitch+42, core=channelX-9;
+      const h=topY+3*pairStride+rowPitch+86, core=channelX-9;
       svg=s(&#x27;svg&#x27;,{viewBox:`0 0 ${width} ${h}`,height:h,role:&#x27;img&#x27;,&#x27;aria-label&#x27;:&#x27;One NAND string with 8 series MOS cells, connected from BL at the top to SL at the bottom. Four complementary cell pairs encode 4 bits.&#x27;});
       svg.append(s(&#x27;text&#x27;,{x:gateLeft,y:18},&#x27;WL drive&#x27;));
       svg.append(s(&#x27;text&#x27;,{x:right,y:18},&#x27;Stored state&#x27;));
       svg.append(s(&#x27;rect&#x27;,{x:core-41,y:34,width:82,height:22,rx:4,fill:&#x27;var(--muted)&#x27;}));
       svg.append(s(&#x27;text&#x27;,{x:core,y:49,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;BL · 0.7 V&#x27;));
-      svg.append(s(&#x27;line&#x27;,{x1:core,y1:56,x2:core,y2:topY+7*rowPitch+26,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:3}));
+      svg.append(s(&#x27;line&#x27;,{x1:core,y1:56,x2:core,y2:topY+3*pairStride+rowPitch+26,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:3}));
       rows=[];
       for(let j=0;j&lt;8;j++){
-        const y=topY+j*rowPitch, bit=Math.floor(j/2);
-        if(j%2===0&amp;&amp;!compact){
-          const braceX=width-110;
-          svg.append(s(&#x27;path&#x27;,{d:`M${braceX-5},${y-17}h5v${rowPitch+34}h-5`,fill:&#x27;none&#x27;,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1}));
-          const pairTitle=s(&#x27;text&#x27;,{x:braceX+13,y:y+16},&#x27;&#x27;);svg.append(pairTitle);
-          const pairState=s(&#x27;text&#x27;,{x:braceX+13,y:y+34},&#x27;&#x27;);svg.append(pairState);
-          rows.push({pairTitle,pairState});
-        } else if(j%2===0){
-          rows.push({});
+        const bit=Math.floor(j/2), y=topY+bit*pairStride+(j%2)*rowPitch;
+        if(j%2===0){
+          const group=s(&#x27;g&#x27;,{class:&#x27;bit-group&#x27;,&#x27;data-bit-group&#x27;:bit,role:&#x27;group&#x27;,&#x27;aria-label&#x27;:`Bit ${bit+1}: two complementary cells`});svg.append(group);
+          const frame=s(&#x27;rect&#x27;,{class:&#x27;bit-group-frame&#x27;,x:4,y:y-42,width:width-8,height:rowPitch+72,rx:6,fill:&#x27;var(--muted)&#x27;,&#x27;fill-opacity&#x27;:0.2,stroke:&#x27;color-mix(in srgb, var(--foreground) 30%, var(--background))&#x27;,&#x27;stroke-width&#x27;:1.2});group.append(frame);
+          const pairTitle=s(&#x27;text&#x27;,{class:&#x27;bit-group-title&#x27;,x:gateLeft+10,y:y-25},&#x27;&#x27;);pairTitle.style.fontWeight=&#x27;500&#x27;;group.append(pairTitle);
+          group.append(s(&#x27;text&#x27;,{x:width/2,y:y-25,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;2 cells&#x27;));
+          const pairState=s(&#x27;text&#x27;,{x:width-14,y:y-25,&#x27;text-anchor&#x27;:&#x27;end&#x27;},&#x27;&#x27;);group.append(pairState);
+          rows.push({pairTitle,pairState,group,frame});
         }
         const pair=rows[bit];
-        const cell=s(&#x27;rect&#x27;,{class:&#x27;memory-cell&#x27;,x:channelX-27,y:y-17,width:54,height:34,rx:5,fill:&#x27;var(--muted)&#x27;});svg.append(cell);
-        const gate=s(&#x27;rect&#x27;,{x:channelX-35,y:y-13,width:4,height:26,rx:1,fill:&#x27;var(--border)&#x27;});svg.append(gate);
-        const wire=s(&#x27;path&#x27;,{fill:&#x27;none&#x27;,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1});svg.append(wire);
-        const marker=s(&#x27;rect&#x27;,{x:core-3,y:y-14,width:6,height:28,rx:2,fill:&#x27;var(--foreground)&#x27;,opacity:0.24});svg.append(marker);
-        const kind=s(&#x27;text&#x27;,{x:channelX+11,y:y+4,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;&#x27;);svg.append(kind);
-        const voltage=s(&#x27;text&#x27;,{x:gateLeft,y:y-7},&#x27;&#x27;);svg.append(voltage);
-        const delta=s(&#x27;text&#x27;,{x:gateLeft,y:y+23},&#x27;&#x27;);svg.append(delta);
-        const cellLabel=s(&#x27;text&#x27;,{x:right,y:y-4},&#x27;&#x27;);svg.append(cellLabel);
-        const pairLabel=s(&#x27;text&#x27;,{x:right,y:y+13},&#x27;&#x27;);svg.append(pairLabel);
+        const cell=s(&#x27;rect&#x27;,{class:&#x27;memory-cell&#x27;,x:channelX-27,y:y-17,width:54,height:34,rx:5,fill:&#x27;var(--muted)&#x27;});pair.group.append(cell);
+        const gate=s(&#x27;rect&#x27;,{x:channelX-35,y:y-13,width:4,height:26,rx:1,fill:&#x27;var(--border)&#x27;});pair.group.append(gate);
+        const wire=s(&#x27;path&#x27;,{fill:&#x27;none&#x27;,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1});pair.group.append(wire);
+        const marker=s(&#x27;rect&#x27;,{x:core-3,y:y-14,width:6,height:28,rx:2,fill:&#x27;var(--foreground)&#x27;,opacity:0.24});pair.group.append(marker);
+        const kind=s(&#x27;text&#x27;,{x:channelX+11,y:y+4,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;&#x27;);pair.group.append(kind);
+        const voltage=s(&#x27;text&#x27;,{x:gateLeft,y:y-7},&#x27;&#x27;);pair.group.append(voltage);
+        const delta=s(&#x27;text&#x27;,{x:gateLeft,y:y+23},&#x27;&#x27;);pair.group.append(delta);
+        const cellLabel=s(&#x27;text&#x27;,{x:right,y:y-4},&#x27;&#x27;);pair.group.append(cellLabel);
+        const pairLabel=s(&#x27;text&#x27;,{x:right,y:y+13},&#x27;&#x27;);pair.group.append(pairLabel);
         if(!pair.cells)pair.cells=[];
         pair.cells.push({voltage,delta,cellLabel,pairLabel,marker,wire,gate,cell,kind,y,bit,start:gateLeft+4,end:channelX-35});
       }
-      const end=topY+7*rowPitch+26;
+      const end=topY+3*pairStride+rowPitch+26;
       svg.append(s(&#x27;rect&#x27;,{x:core-41,y:end,width:82,height:22,rx:4,fill:&#x27;var(--muted)&#x27;}));
       svg.append(s(&#x27;text&#x27;,{x:core,y:end+15,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;SL · 0 V&#x27;));
       svg.append(s(&#x27;text&#x27;,{x:core,y:end+43,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;Series current path&#x27;));
@@ -1722,13 +1721,18 @@ html&gt;body{padding:0}&lt;/style&gt;
         r.kind.textContent=d.vt===model.vh?&#x27;H&#x27;:&#x27;L&#x27;;
         r.cellLabel.textContent=`VT ${d.vt.toFixed(3)} V`;
         const mismatch=bits[b]===0;
-        r.pairLabel.textContent=width&lt;500?(j%2===0?`Bit ${b+1} · ${mismatch?&#x27;mismatch&#x27;:&#x27;match&#x27;}`:(d.low?&#x27;Random low&#x27;:&#x27;Fixed high&#x27;)):(d.low?&#x27;Random low read&#x27;:&#x27;Fixed high read&#x27;);
+        r.pairLabel.textContent=width&lt;500?(d.low?&#x27;Random low&#x27;:&#x27;Fixed high&#x27;):(d.low?&#x27;Random low read&#x27;:&#x27;Fixed high read&#x27;);
         r.wire.setAttribute(&#x27;stroke&#x27;,d.low?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--border)&#x27;);
         const middle=(r.start+r.end)/2, amplitude=d.low&amp;&amp;sample?Math.max(-8,Math.min(8,-sigma*sample.z[b]*45)):0;
         r.wire.setAttribute(&#x27;d&#x27;,`M${r.start},${r.y+6}H${middle-10}L${middle},${r.y+6+amplitude}L${middle+10},${r.y+6}H${r.end}`);
         r.gate.setAttribute(&#x27;fill&#x27;,d.low?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--border)&#x27;);
         r.cell.setAttribute(&#x27;fill&#x27;,d.low&amp;&amp;mismatch?&#x27;color-mix(in srgb, var(--viz-series-2) 20%, var(--background))&#x27;:d.vt===model.vh?&#x27;color-mix(in srgb, var(--foreground) 13%, var(--background))&#x27;:&#x27;var(--muted)&#x27;);
-        if(j%2===0&amp;&amp;rows[b].pairTitle){rows[b].pairTitle.textContent=`Bit ${b+1}`;rows[b].pairState.textContent=mismatch?&#x27;Mismatch&#x27;:&#x27;Match&#x27;;}
+        if(j%2===0){
+          rows[b].pairTitle.textContent=`Bit ${b+1}`;
+          rows[b].pairState.textContent=`Data ${bits[b]} · ${mismatch?&#x27;Mismatch&#x27;:&#x27;Match&#x27;}`;
+          rows[b].frame.setAttribute(&#x27;stroke&#x27;,mismatch?&#x27;var(--viz-series-2)&#x27;:&#x27;color-mix(in srgb, var(--foreground) 30%, var(--background))&#x27;);
+          rows[b].group.setAttribute(&#x27;aria-label&#x27;,`Bit ${b+1}: data ${bits[b]}, query 1, ${mismatch?&#x27;mismatch&#x27;:&#x27;match&#x27;}, two complementary cells on WL${2*b+1} and WL${2*b+2}`);
+        }
         const showSense=sample&amp;&amp;phase&gt;=1;
         r.marker.setAttribute(&#x27;fill&#x27;,showSense&amp;&amp;sample.sensed?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--foreground)&#x27;);
         r.marker.setAttribute(&#x27;opacity&#x27;,showSense&amp;&amp;sample.sensed?0.7:0.24);
@@ -1787,7 +1791,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     restore(window.openai?.widgetState);
     window.addEventListener(&#x27;openai:set_globals&#x27;,e=&gt;{if(e.detail?.globals?.widgetState)restore(e.detail.globals.widgetState);});
     new ResizeObserver(draw).observe(el(&#x27;nand-diagram&#x27;));
-    function animate(t){if(svg&amp;&amp;sample&amp;&amp;phase===1&amp;&amp;sample.sensed){const f=svg.querySelector(&#x27;#nand-flow&#x27;);f.setAttribute(&#x27;cy&#x27;,57+((t%850)/850)*(topY+7*rowPitch-31));}requestAnimationFrame(animate);}
+    function animate(t){if(svg&amp;&amp;sample&amp;&amp;phase===1&amp;&amp;sample.sensed){const f=svg.querySelector(&#x27;#nand-flow&#x27;);f.setAttribute(&#x27;cy&#x27;,57+((t%850)/850)*(topY+3*pairStride+rowPitch-31));}requestAnimationFrame(animate);}
     updateUI();requestAnimationFrame(animate);
     // Expose the local model for implementation checks, not a silicon-calibrated API.
     root.nandModel={solve,nextSample,model};
