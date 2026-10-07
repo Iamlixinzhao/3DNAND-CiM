@@ -1540,32 +1540,38 @@ html&gt;body{padding:0}&lt;/style&gt;
 &lt;div id=&quot;nand-random-read-demo&quot; lang=&quot;en&quot;&gt;
   &lt;style&gt;
     #nand-random-read-demo { color: var(--foreground); }
-    #nand-random-read-demo .demo-top { padding-right: 90px; }
+    #nand-random-read-demo .demo-top { padding-right: 90px; margin-bottom: 22px; }
+    #nand-random-read-demo .section-label { display: flex; align-items: baseline; gap: 12px; margin: 16px 0 10px; font-weight: 500; }
+    #nand-random-read-demo .section-letter { font-weight: 500; }
+    #nand-random-read-demo .settings-note { margin: 8px 0 16px; }
+    #nand-random-read-demo .figure-footer { margin-top: 18px; color: var(--muted-foreground); }
     #nand-random-read-demo .parameters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin: 16px 0; }
     #nand-random-read-demo .parameters label { display: block; }
     #nand-random-read-demo .code-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
     #nand-random-read-demo .code-bits { display: inline-flex; gap: 6px; }
-    #nand-random-read-demo .phase-row { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 8px; }
-    #nand-random-read-demo .phase-row span { color: var(--muted-foreground); }
-    #nand-random-read-demo .phase-row span.active { color: var(--foreground); font-weight: 500; }
+    #nand-random-read-demo .phase-row { display: flex; flex-wrap: wrap; gap: 14px 22px; margin: 20px 0 8px; }
+    #nand-random-read-demo .phase-row span { color: var(--muted-foreground); padding-bottom: 6px; border-bottom: 2px solid transparent; }
+    #nand-random-read-demo .phase-row span.active { color: var(--foreground); font-weight: 500; border-bottom-color: var(--viz-series-1); }
     #nand-random-read-demo .metrics { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 12px 0; }
     #nand-random-read-demo svg { display: block; width: 100%; overflow: visible; }
     #nand-random-read-demo svg text { fill: var(--foreground); font-size: 12px; font-weight: 400; }
-    #nand-random-read-demo .history { display: flex; gap: 4px; flex-wrap: wrap; min-height: 12px; margin: 8px 0; }
-    #nand-random-read-demo .read-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    #nand-random-read-demo .memory-cell { transition: fill 180ms ease; }
+    #nand-random-read-demo .history { display: flex; gap: 4px; flex-wrap: wrap; min-height: 20px; margin: 12px 0; }
+    #nand-random-read-demo .read-dot { width: 10px; height: 20px; border-radius: 2px; background: var(--muted); }
     #nand-random-read-demo .read-dot.on { background: var(--viz-series-1); }
     #nand-random-read-demo .read-dot.off { background: var(--viz-series-2); }
     #nand-random-read-demo .status { min-height: 22px; }
     #nand-random-read-demo .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0; }
-    #nand-random-read-demo .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; background: var(--viz-series-1); }
+    #nand-random-read-demo .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; background: var(--viz-series-1); }
     #nand-random-read-demo .swatch.off { background: var(--viz-series-2); }
     @media(max-width:440px) { #nand-random-read-demo .parameters { grid-template-columns: 1fr; } }
     @media(prefers-reduced-motion:reduce) { #nand-random-read-demo .flow-dot { display: none; } }
   &lt;/style&gt;
   &lt;div class=&quot;demo-top&quot;&gt;
-    &lt;h3&gt;Probabilistic NAND readout&lt;/h3&gt;
-    &lt;div class=&quot;text-small&quot;&gt;4 bits · 8 cells · 2 cells / bit · Uncalibrated Level-1 MOS demonstration&lt;/div&gt;
+    &lt;h2&gt;Probabilistic NAND readout&lt;/h2&gt;
+    &lt;div class=&quot;text-small&quot;&gt;Controlled WL perturbations · Repeated current sensing&lt;/div&gt;
   &lt;/div&gt;
+  &lt;div class=&quot;section-label&quot;&gt;&lt;span class=&quot;section-letter&quot;&gt;a&lt;/span&gt;&lt;span&gt;Query &amp;amp; read conditions&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;code-row&quot;&gt;&lt;span&gt;Query&lt;/span&gt;&lt;span class=&quot;tabular-nums&quot;&gt;1　1　1　1&lt;/span&gt;&lt;span&gt;Data&lt;/span&gt;&lt;span class=&quot;code-bits&quot; aria-label=&quot;Click to toggle stored bits&quot;&gt;
     &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-bit=&quot;0&quot; aria-label=&quot;Stored bit 1&quot;&gt;1&lt;/button&gt;
     &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-bit=&quot;1&quot; aria-label=&quot;Stored bit 2&quot;&gt;1&lt;/button&gt;
@@ -1580,20 +1586,24 @@ html&gt;body{padding:0}&lt;/style&gt;
       &lt;input class=&quot;form-range&quot; id=&quot;nand-sigma&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;0.5&quot; step=&quot;0.005&quot; value=&quot;0.15&quot;&gt;
     &lt;/label&gt;
   &lt;/div&gt;
-  &lt;div class=&quot;text-small&quot;&gt;VT,H = 5.312 V · VT,L = −2.369 V · Vread,high = 8 V · VBL = 0.7 V&lt;/div&gt;
+  &lt;div class=&quot;text-small settings-note&quot;&gt;VT,H = 5.312 V · VT,L = −2.369 V · Vread,high = 8 V · VBL = 0.7 V&lt;/div&gt;
   &lt;div class=&quot;viz-controls&quot; style=&quot;margin-top:12px&quot;&gt;
     &lt;button class=&quot;btn btn-primary&quot; id=&quot;nand-play&quot; type=&quot;button&quot;&gt;Play reads&lt;/button&gt;
     &lt;button class=&quot;btn&quot; id=&quot;nand-step&quot; type=&quot;button&quot;&gt;Single read&lt;/button&gt;
     &lt;button class=&quot;btn&quot; id=&quot;nand-batch&quot; type=&quot;button&quot;&gt;Complete 500 reads&lt;/button&gt;
     &lt;button class=&quot;btn btn-ghost&quot; id=&quot;nand-reset&quot; type=&quot;button&quot;&gt;Reset&lt;/button&gt;
   &lt;/div&gt;
-  &lt;div class=&quot;phase-row&quot; aria-hidden=&quot;true&quot;&gt;&lt;span data-phase=&quot;0&quot;&gt;① Randomize WL voltages&lt;/span&gt;&lt;span data-phase=&quot;1&quot;&gt;② Sense string current&lt;/span&gt;&lt;span data-phase=&quot;2&quot;&gt;③ Accumulate count&lt;/span&gt;&lt;/div&gt;
+  &lt;hr&gt;
+  &lt;div class=&quot;section-label&quot;&gt;&lt;span class=&quot;section-letter&quot;&gt;b&lt;/span&gt;&lt;span&gt;One series string&lt;/span&gt;&lt;span class=&quot;text-small&quot;&gt;4 bits / 8 cells · 2 cells per bit&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;phase-row&quot; aria-hidden=&quot;true&quot;&gt;&lt;span data-phase=&quot;0&quot;&gt;1 · Apply random voltages&lt;/span&gt;&lt;span data-phase=&quot;1&quot;&gt;2 · Sense current&lt;/span&gt;&lt;span data-phase=&quot;2&quot;&gt;3 · Count&lt;/span&gt;&lt;/div&gt;
   &lt;div id=&quot;nand-diagram&quot;&gt;&lt;/div&gt;
+  &lt;hr&gt;
+  &lt;div class=&quot;section-label&quot;&gt;&lt;span class=&quot;section-letter&quot;&gt;c&lt;/span&gt;&lt;span&gt;Repeated-read output&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;metrics tabular-nums&quot;&gt;&lt;span id=&quot;nand-current&quot;&gt;|IBL| = —&lt;/span&gt;&lt;span&gt;Isense = 100 nA&lt;/span&gt;&lt;span id=&quot;nand-count&quot;&gt;Sensed-on = 0 / 0 reads&lt;/span&gt;&lt;/div&gt;
   &lt;div id=&quot;nand-status&quot; class=&quot;status&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;Toggle Data bits to change mismatches. Press Play reads to animate.&lt;/div&gt;
   &lt;div class=&quot;legend text-small&quot;&gt;&lt;span&gt;&lt;i class=&quot;swatch&quot;&gt;&lt;/i&gt;Sensed-on&lt;/span&gt;&lt;span&gt;&lt;i class=&quot;swatch off&quot;&gt;&lt;/i&gt;Below Isense&lt;/span&gt;&lt;span&gt;Last 40 reads&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;history&quot; id=&quot;nand-history&quot; aria-label=&quot;Results of the last 40 reads&quot;&gt;&lt;/div&gt;
-  &lt;div class=&quot;text-small&quot;&gt;Independent perturbations per low WL and per read. 12-uniform Gaussian approximation; z clipped to ±2; ΔV = σz. The Level-1 model excludes subthreshold leakage. Animation timing is illustrative.&lt;/div&gt;
+  &lt;div class=&quot;text-small figure-footer&quot;&gt;Uncalibrated Level-1 MOS demonstration. Independent perturbations per low WL and per read; 12-uniform Gaussian approximation, z clipped to ±2, ΔV = σz. No subthreshold leakage. Geometry and animation timing are schematic.&lt;/div&gt;
   &lt;script&gt;
   (() =&gt; {
     const root = document.getElementById(&#x27;nand-random-read-demo&#x27;);
@@ -1601,7 +1611,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const model = {beta:0.002, lambda:0.02, vbl:0.7, high:8, vh:5.312, vl:-2.369, sense:1e-7};
     let bits=[1,1,1,0], vlow=5.3, sigma=0.15, seed=42;
     let count=0, reads=0, history=[], phase=-1, running=false, timer=null, sample=null, committed=false;
-    let svg=null, channelX=0, rows=[], topY=44, rowPitch=51, width=700;
+    let svg=null, channelX=0, rows=[], topY=85, rowPitch=52, width=700;
     const svgNS=&#x27;http://www.w3.org/2000/svg&#x27;;
     function rand(){seed=(Math.imul(1664525,seed)+1013904223)&gt;&gt;&gt;0;return seed/4294967296;}
     function zSample(){let z=-6;for(let j=0;j&lt;12;j++)z+=rand();return Math.max(-2,Math.min(2,z));}
@@ -1658,50 +1668,75 @@ html&gt;body{padding:0}&lt;/style&gt;
     function draw(){
       const host=el(&#x27;nand-diagram&#x27;);
       width=Math.max(280,host.getBoundingClientRect().width);
-      channelX=width&lt;430?Math.round(width*0.55):Math.round(width*0.48);
-      const gateLeft=width&lt;430?12:30, right=channelX+34;
-      const h=topY+8*rowPitch+28;
+      const compact=width&lt;500;
+      channelX=compact?Math.round(width*0.52):Math.round(width*0.47);
+      const gateLeft=compact?8:24, right=channelX+42;
+      const h=topY+8*rowPitch+42, core=channelX-9;
       svg=s(&#x27;svg&#x27;,{viewBox:`0 0 ${width} ${h}`,height:h,role:&#x27;img&#x27;,&#x27;aria-label&#x27;:&#x27;One NAND string with 8 series MOS cells, connected from BL at the top to SL at the bottom. Four complementary cell pairs encode 4 bits.&#x27;});
-      svg.append(s(&#x27;text&#x27;,{x:channelX,y:16,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;BL · 0.7 V&#x27;));
-      svg.append(s(&#x27;line&#x27;,{x1:channelX,y1:22,x2:channelX,y2:topY-13,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:2}));
+      svg.append(s(&#x27;text&#x27;,{x:gateLeft,y:18},&#x27;WL drive&#x27;));
+      svg.append(s(&#x27;text&#x27;,{x:right,y:18},&#x27;Stored state&#x27;));
+      svg.append(s(&#x27;rect&#x27;,{x:core-41,y:34,width:82,height:22,rx:4,fill:&#x27;var(--muted)&#x27;}));
+      svg.append(s(&#x27;text&#x27;,{x:core,y:49,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;BL · 0.7 V&#x27;));
+      svg.append(s(&#x27;line&#x27;,{x1:core,y1:56,x2:core,y2:topY+7*rowPitch+26,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:3}));
       rows=[];
       for(let j=0;j&lt;8;j++){
         const y=topY+j*rowPitch, bit=Math.floor(j/2);
-        if(j%2===0){
-          svg.append(s(&#x27;rect&#x27;,{x:gateLeft-4,y:y-15,width:width-gateLeft-8,height:2*rowPitch-2,rx:5,fill:&#x27;var(--muted)&#x27;,opacity:0.35}));
+        if(j%2===0&amp;&amp;!compact){
+          const braceX=width-110;
+          svg.append(s(&#x27;path&#x27;,{d:`M${braceX-5},${y-17}h5v${rowPitch+34}h-5`,fill:&#x27;none&#x27;,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1}));
+          const pairTitle=s(&#x27;text&#x27;,{x:braceX+13,y:y+16},&#x27;&#x27;);svg.append(pairTitle);
+          const pairState=s(&#x27;text&#x27;,{x:braceX+13,y:y+34},&#x27;&#x27;);svg.append(pairState);
+          rows.push({pairTitle,pairState});
+        } else if(j%2===0){
+          rows.push({});
         }
-        svg.append(s(&#x27;line&#x27;,{x1:channelX,y1:y-13,x2:channelX,y2:y+13,stroke:&#x27;var(--foreground)&#x27;,&#x27;stroke-width&#x27;:2}));
-        svg.append(s(&#x27;line&#x27;,{x1:channelX,y1:y+13,x2:channelX,y2:y+rowPitch-13,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:2}));
-        svg.append(s(&#x27;line&#x27;,{x1:channelX-9,y1:y-12,x2:channelX-9,y2:y+12,stroke:&#x27;var(--foreground)&#x27;,&#x27;stroke-width&#x27;:2}));
-        const wire=s(&#x27;line&#x27;,{x1:gateLeft+5,y1:y,x2:channelX-9,y2:y,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1});svg.append(wire);
-        const voltage=s(&#x27;text&#x27;,{x:gateLeft+2,y:y-5},&#x27;&#x27;);svg.append(voltage);
-        const delta=s(&#x27;text&#x27;,{x:gateLeft+2,y:y+12},&#x27;&#x27;);svg.append(delta);
+        const pair=rows[bit];
+        const cell=s(&#x27;rect&#x27;,{class:&#x27;memory-cell&#x27;,x:channelX-27,y:y-17,width:54,height:34,rx:5,fill:&#x27;var(--muted)&#x27;});svg.append(cell);
+        const gate=s(&#x27;rect&#x27;,{x:channelX-35,y:y-13,width:4,height:26,rx:1,fill:&#x27;var(--border)&#x27;});svg.append(gate);
+        const wire=s(&#x27;path&#x27;,{fill:&#x27;none&#x27;,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1});svg.append(wire);
+        const marker=s(&#x27;rect&#x27;,{x:core-3,y:y-14,width:6,height:28,rx:2,fill:&#x27;var(--foreground)&#x27;,opacity:0.24});svg.append(marker);
+        const kind=s(&#x27;text&#x27;,{x:channelX+11,y:y+4,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;&#x27;);svg.append(kind);
+        const voltage=s(&#x27;text&#x27;,{x:gateLeft,y:y-7},&#x27;&#x27;);svg.append(voltage);
+        const delta=s(&#x27;text&#x27;,{x:gateLeft,y:y+23},&#x27;&#x27;);svg.append(delta);
         const cellLabel=s(&#x27;text&#x27;,{x:right,y:y-4},&#x27;&#x27;);svg.append(cellLabel);
-        const pairLabel=s(&#x27;text&#x27;,{x:right,y:y+12},&#x27;&#x27;);svg.append(pairLabel);
-        const marker=s(&#x27;circle&#x27;,{cx:channelX,cy:y,r:5,fill:&#x27;var(--muted)&#x27;,stroke:&#x27;none&#x27;});svg.append(marker);
-        rows.push({voltage,delta,cellLabel,pairLabel,marker,wire,y,bit});
+        const pairLabel=s(&#x27;text&#x27;,{x:right,y:y+13},&#x27;&#x27;);svg.append(pairLabel);
+        if(!pair.cells)pair.cells=[];
+        pair.cells.push({voltage,delta,cellLabel,pairLabel,marker,wire,gate,cell,kind,y,bit,start:gateLeft+4,end:channelX-35});
       }
-      const end=topY+8*rowPitch-13;
-      svg.append(s(&#x27;text&#x27;,{x:channelX,y:end+24,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;SL · 0 V&#x27;));
-      const flow=s(&#x27;circle&#x27;,{class:&#x27;flow-dot&#x27;,cx:channelX,cy:24,r:4,fill:&#x27;var(--viz-series-1)&#x27;,opacity:0});flow.id=&#x27;nand-flow&#x27;;svg.append(flow);
+      const end=topY+7*rowPitch+26;
+      svg.append(s(&#x27;rect&#x27;,{x:core-41,y:end,width:82,height:22,rx:4,fill:&#x27;var(--muted)&#x27;}));
+      svg.append(s(&#x27;text&#x27;,{x:core,y:end+15,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;SL · 0 V&#x27;));
+      svg.append(s(&#x27;text&#x27;,{x:core,y:end+43,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;Series current path&#x27;));
+      const flow=s(&#x27;circle&#x27;,{class:&#x27;flow-dot&#x27;,cx:core,cy:57,r:4,fill:&#x27;var(--viz-series-1)&#x27;,opacity:0});flow.id=&#x27;nand-flow&#x27;;svg.append(flow);
+      const output=s(&#x27;text&#x27;,{x:width-8,y:49,&#x27;text-anchor&#x27;:&#x27;end&#x27;},&#x27;&#x27;);output.id=&#x27;nand-sense-label&#x27;;
+      if(!compact)svg.append(output);
       host.replaceChildren(svg);updateDiagram();
     }
     function updateDiagram(){
       if(!svg)return;
       const preview=sample||solve(Array(4).fill(vlow));
       preview.devices.forEach((d,j)=&gt;{
-        const r=rows[j], b=d.bit;
+        const r=rows[Math.floor(j/2)].cells[j%2], b=d.bit;
         r.voltage.textContent=`WL${j+1}  ${d.gate.toFixed(3)} V`;
-        r.delta.textContent=d.low?`ΔV ${sample?(sigma*sample.z[b]&gt;=0?&#x27;+&#x27;:&#x27;&#x27;)+(sigma*sample.z[b]).toFixed(3):&#x27;+0.000&#x27;} V`:&#x27;High read · fixed&#x27;;
-        r.cellLabel.textContent=`${d.vt===model.vh?&#x27;HVT&#x27;:&#x27;LVT&#x27;} · ${d.vt.toFixed(3)} V`;
-        r.pairLabel.textContent=j%2===0?`Bit ${b+1} · ${bits[b]===1?&#x27;match&#x27;:&#x27;mismatch&#x27;}`:(sample&amp;&amp; !sample.zero?`VGS ${d.vgs.toFixed(3)} V`:&#x27;Low read · random&#x27;);
+        r.delta.textContent=d.low?`ΔV ${sample?(sigma*sample.z[b]&gt;=0?&#x27;+&#x27;:&#x27;&#x27;)+(sigma*sample.z[b]).toFixed(3):&#x27;+0.000&#x27;} V`:&#x27;Fixed high read&#x27;;
+        r.kind.textContent=d.vt===model.vh?&#x27;H&#x27;:&#x27;L&#x27;;
+        r.cellLabel.textContent=`VT ${d.vt.toFixed(3)} V`;
+        const mismatch=bits[b]===0;
+        r.pairLabel.textContent=width&lt;500?(j%2===0?`Bit ${b+1} · ${mismatch?&#x27;mismatch&#x27;:&#x27;match&#x27;}`:(d.low?&#x27;Random low&#x27;:&#x27;Fixed high&#x27;)):(d.low?&#x27;Random low read&#x27;:&#x27;Fixed high read&#x27;);
         r.wire.setAttribute(&#x27;stroke&#x27;,d.low?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--border)&#x27;);
+        const middle=(r.start+r.end)/2, amplitude=d.low&amp;&amp;sample?Math.max(-8,Math.min(8,-sigma*sample.z[b]*45)):0;
+        r.wire.setAttribute(&#x27;d&#x27;,`M${r.start},${r.y+6}H${middle-10}L${middle},${r.y+6+amplitude}L${middle+10},${r.y+6}H${r.end}`);
+        r.gate.setAttribute(&#x27;fill&#x27;,d.low?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--border)&#x27;);
+        r.cell.setAttribute(&#x27;fill&#x27;,d.low&amp;&amp;mismatch?&#x27;color-mix(in srgb, var(--viz-series-2) 20%, var(--background))&#x27;:d.vt===model.vh?&#x27;color-mix(in srgb, var(--foreground) 13%, var(--background))&#x27;:&#x27;var(--muted)&#x27;);
+        if(j%2===0&amp;&amp;rows[b].pairTitle){rows[b].pairTitle.textContent=`Bit ${b+1}`;rows[b].pairState.textContent=mismatch?&#x27;Mismatch&#x27;:&#x27;Match&#x27;;}
         const showSense=sample&amp;&amp;phase&gt;=1;
-        r.marker.setAttribute(&#x27;fill&#x27;,showSense?(sample.sensed?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--viz-series-2)&#x27;):&#x27;var(--muted)&#x27;);
-        r.marker.setAttribute(&#x27;opacity&#x27;,showSense?1:0.65);
+        r.marker.setAttribute(&#x27;fill&#x27;,showSense&amp;&amp;sample.sensed?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--foreground)&#x27;);
+        r.marker.setAttribute(&#x27;opacity&#x27;,showSense&amp;&amp;sample.sensed?0.7:0.24);
       });
       const flow=svg.querySelector(&#x27;#nand-flow&#x27;);
       flow.setAttribute(&#x27;opacity&#x27;,sample&amp;&amp;phase===1&amp;&amp;sample.sensed?1:0);
+      const label=svg.querySelector(&#x27;#nand-sense-label&#x27;);
+      if(label)label.textContent=sample&amp;&amp;phase&gt;=1?(sample.sensed?&#x27;SENSED-ON&#x27;:&#x27;BELOW ISENSE&#x27;):&#x27;Awaiting read&#x27;;
     }
     function updateUI(){
       el(&#x27;nand-v-value&#x27;).textContent=`= ${vlow.toFixed(3)} V`;
@@ -1752,7 +1787,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     restore(window.openai?.widgetState);
     window.addEventListener(&#x27;openai:set_globals&#x27;,e=&gt;{if(e.detail?.globals?.widgetState)restore(e.detail.globals.widgetState);});
     new ResizeObserver(draw).observe(el(&#x27;nand-diagram&#x27;));
-    function animate(t){if(svg&amp;&amp;sample&amp;&amp;phase===1&amp;&amp;sample.sensed){const f=svg.querySelector(&#x27;#nand-flow&#x27;);f.setAttribute(&#x27;cy&#x27;,24+((t%700)/700)*(topY+8*rowPitch-37));}requestAnimationFrame(animate);}
+    function animate(t){if(svg&amp;&amp;sample&amp;&amp;phase===1&amp;&amp;sample.sensed){const f=svg.querySelector(&#x27;#nand-flow&#x27;);f.setAttribute(&#x27;cy&#x27;,57+((t%850)/850)*(topY+7*rowPitch-31));}requestAnimationFrame(animate);}
     updateUI();requestAnimationFrame(animate);
     // Expose the local model for implementation checks, not a silicon-calibrated API.
     root.nandModel={solve,nextSample,model};
