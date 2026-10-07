@@ -4,7 +4,7 @@
 
 [Open the interactive demo](https://Iamlixinzhao.github.io/3DNAND-CiM/)
 
-An English-language, browser-only animation of randomized word-line voltages and repeated current sensing in one short NAND string.
+An animation of randomized word-line voltages and repeated current sensing in one short NAND string.
 
 - 4 bits / 8 cells, using two complementary threshold-state cells per bit.
 - Fixed query `1111`; click the Data bits to change mismatch positions.
