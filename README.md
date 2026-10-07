@@ -7,7 +7,7 @@
 An animation of randomized word-line voltages and repeated current sensing in one short NAND string.
 
 - 4 bits / 8 cells, using two complementary threshold-state cells per bit.
-- Fixed query `1111`; click the Data bits to change mismatch positions.
+- Click the Query or Data bits to change mismatch positions; Query switches the complementary WL drives while Data sets the stored threshold states.
 - Adjustable low-read voltage and random-voltage scale.
 - Animated sampling, whole-string current sensing, and count accumulation.
 - Single-read and 500-read modes.

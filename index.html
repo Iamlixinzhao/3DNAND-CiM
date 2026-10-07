@@ -1572,7 +1572,13 @@ html&gt;body{padding:0}&lt;/style&gt;
     &lt;div class=&quot;text-small&quot;&gt;Controlled WL perturbations · Repeated current sensing&lt;/div&gt;
   &lt;/div&gt;
   &lt;div class=&quot;section-label&quot;&gt;&lt;span class=&quot;section-letter&quot;&gt;a&lt;/span&gt;&lt;span&gt;Query &amp;amp; read conditions&lt;/span&gt;&lt;/div&gt;
-  &lt;div class=&quot;code-row&quot;&gt;&lt;span&gt;Query&lt;/span&gt;&lt;span class=&quot;tabular-nums&quot;&gt;1　1　1　1&lt;/span&gt;&lt;span&gt;Data&lt;/span&gt;&lt;span class=&quot;code-bits&quot; aria-label=&quot;Click to toggle stored bits&quot;&gt;
+  &lt;div class=&quot;code-row&quot;&gt;&lt;span&gt;Query&lt;/span&gt;&lt;span class=&quot;code-bits&quot; role=&quot;group&quot; aria-label=&quot;Click to toggle query bits&quot;&gt;
+    &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-query-bit=&quot;0&quot; aria-label=&quot;Query bit 1&quot;&gt;1&lt;/button&gt;
+    &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-query-bit=&quot;1&quot; aria-label=&quot;Query bit 2&quot;&gt;1&lt;/button&gt;
+    &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-query-bit=&quot;2&quot; aria-label=&quot;Query bit 3&quot;&gt;1&lt;/button&gt;
+    &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-query-bit=&quot;3&quot; aria-label=&quot;Query bit 4&quot;&gt;1&lt;/button&gt;
+  &lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;code-row&quot;&gt;&lt;span&gt;Data&lt;/span&gt;&lt;span class=&quot;code-bits&quot; role=&quot;group&quot; aria-label=&quot;Click to toggle stored bits&quot;&gt;
     &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-bit=&quot;0&quot; aria-label=&quot;Stored bit 1&quot;&gt;1&lt;/button&gt;
     &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-bit=&quot;1&quot; aria-label=&quot;Stored bit 2&quot;&gt;1&lt;/button&gt;
     &lt;button class=&quot;btn&quot; type=&quot;button&quot; data-bit=&quot;2&quot; aria-label=&quot;Stored bit 3&quot;&gt;1&lt;/button&gt;
@@ -1600,7 +1606,7 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;hr&gt;
   &lt;div class=&quot;section-label&quot;&gt;&lt;span class=&quot;section-letter&quot;&gt;c&lt;/span&gt;&lt;span&gt;Repeated-read output&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;metrics tabular-nums&quot;&gt;&lt;span id=&quot;nand-current&quot;&gt;|IBL| = —&lt;/span&gt;&lt;span&gt;Isense = 100 nA&lt;/span&gt;&lt;span id=&quot;nand-count&quot;&gt;Sensed-on = 0 / 0 reads&lt;/span&gt;&lt;/div&gt;
-  &lt;div id=&quot;nand-status&quot; class=&quot;status&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;Toggle Data bits to change mismatches. Press Play reads to animate.&lt;/div&gt;
+  &lt;div id=&quot;nand-status&quot; class=&quot;status&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;Toggle Query or Data bits to change mismatches. Press Play reads to animate.&lt;/div&gt;
   &lt;div class=&quot;legend text-small&quot;&gt;&lt;span&gt;&lt;i class=&quot;swatch&quot;&gt;&lt;/i&gt;Sensed-on&lt;/span&gt;&lt;span&gt;&lt;i class=&quot;swatch off&quot;&gt;&lt;/i&gt;Below Isense&lt;/span&gt;&lt;span&gt;Last 40 reads&lt;/span&gt;&lt;/div&gt;
   &lt;div class=&quot;history&quot; id=&quot;nand-history&quot; aria-label=&quot;Results of the last 40 reads&quot;&gt;&lt;/div&gt;
   &lt;div class=&quot;text-small figure-footer&quot;&gt;Uncalibrated Level-1 MOS demonstration. Independent perturbations per low WL and per read; 12-uniform Gaussian approximation, z clipped to ±2, ΔV = σz. No subthreshold leakage. Geometry and animation timing are schematic.&lt;/div&gt;
@@ -1609,7 +1615,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     const root = document.getElementById(&#x27;nand-random-read-demo&#x27;);
     const el = id =&gt; root.querySelector(&#x27;#&#x27;+id);
     const model = {beta:0.002, lambda:0.02, vbl:0.7, high:8, vh:5.312, vl:-2.369, sense:1e-7};
-    let bits=[1,1,1,0], vlow=5.3, sigma=0.15, seed=42;
+    let query=[1,1,1,1], bits=[1,1,1,0], vlow=5.3, sigma=0.15, seed=42;
     let count=0, reads=0, history=[], phase=-1, running=false, timer=null, sample=null, committed=false;
     let svg=null, channelX=0, rows=[], topY=108, rowPitch=46, pairStride=138, width=700;
     const svgNS=&#x27;http://www.w3.org/2000/svg&#x27;;
@@ -1628,13 +1634,15 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
       return d;
     }
-    // Physical order from BL to SL: high-driven cell, low-driven cell per bit.
-    // Query is fixed to 1111; match=[HVT,LVT], mismatch=[LVT,HVT].
-    function solve(gates, data=bits){
+    // Fixed physical order from BL to SL: data 1=[HVT,LVT], data 0=[LVT,HVT].
+    // Query switches the WL drives, never the stored thresholds:
+    // query 1=[high,random low], query 0=[random low,high].
+    function solve(gates, data=bits, q=query){
       const devices=[];
       for(let b=0;b&lt;4;b++){
-        devices.push({bit:b,gate:model.high,vt:data[b]===1?model.vh:model.vl,low:false});
-        devices.push({bit:b,gate:gates[b],vt:data[b]===1?model.vl:model.vh,low:true});
+        const firstLow=q[b]===0;
+        devices.push({bit:b,gate:firstLow?gates[b]:model.high,vt:data[b]===1?model.vh:model.vl,low:firstLow});
+        devices.push({bit:b,gate:firstLow?model.high:gates[b],vt:data[b]===1?model.vl:model.vh,low:!firstLow});
       }
       function propagate(i,details=false){
         let source=0;
@@ -1685,7 +1693,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           const group=s(&#x27;g&#x27;,{class:&#x27;bit-group&#x27;,&#x27;data-bit-group&#x27;:bit,role:&#x27;group&#x27;,&#x27;aria-label&#x27;:`Bit ${bit+1}: two complementary cells`});svg.append(group);
           const frame=s(&#x27;rect&#x27;,{class:&#x27;bit-group-frame&#x27;,x:4,y:y-42,width:width-8,height:rowPitch+72,rx:6,fill:&#x27;var(--muted)&#x27;,&#x27;fill-opacity&#x27;:0.2,stroke:&#x27;color-mix(in srgb, var(--foreground) 30%, var(--background))&#x27;,&#x27;stroke-width&#x27;:1.2});group.append(frame);
           const pairTitle=s(&#x27;text&#x27;,{class:&#x27;bit-group-title&#x27;,x:gateLeft+10,y:y-25},&#x27;&#x27;);pairTitle.style.fontWeight=&#x27;500&#x27;;group.append(pairTitle);
-          group.append(s(&#x27;text&#x27;,{x:width/2,y:y-25,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;2 cells&#x27;));
+          group.append(s(&#x27;text&#x27;,{x:gateLeft+52,y:y-25},&#x27;2 cells&#x27;));
           const pairState=s(&#x27;text&#x27;,{x:width-14,y:y-25,&#x27;text-anchor&#x27;:&#x27;end&#x27;},&#x27;&#x27;);group.append(pairState);
           rows.push({pairTitle,pairState,group,frame});
         }
@@ -1720,7 +1728,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         r.delta.textContent=d.low?`ΔV ${sample?(sigma*sample.z[b]&gt;=0?&#x27;+&#x27;:&#x27;&#x27;)+(sigma*sample.z[b]).toFixed(3):&#x27;+0.000&#x27;} V`:&#x27;Fixed high read&#x27;;
         r.kind.textContent=d.vt===model.vh?&#x27;H&#x27;:&#x27;L&#x27;;
         r.cellLabel.textContent=`VT ${d.vt.toFixed(3)} V`;
-        const mismatch=bits[b]===0;
+        const mismatch=bits[b]!==query[b];
         r.pairLabel.textContent=width&lt;500?(d.low?&#x27;Random low&#x27;:&#x27;Fixed high&#x27;):(d.low?&#x27;Random low read&#x27;:&#x27;Fixed high read&#x27;);
         r.wire.setAttribute(&#x27;stroke&#x27;,d.low?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--border)&#x27;);
         const middle=(r.start+r.end)/2, amplitude=d.low&amp;&amp;sample?Math.max(-8,Math.min(8,-sigma*sample.z[b]*45)):0;
@@ -1729,9 +1737,9 @@ html&gt;body{padding:0}&lt;/style&gt;
         r.cell.setAttribute(&#x27;fill&#x27;,d.low&amp;&amp;mismatch?&#x27;color-mix(in srgb, var(--viz-series-2) 20%, var(--background))&#x27;:d.vt===model.vh?&#x27;color-mix(in srgb, var(--foreground) 13%, var(--background))&#x27;:&#x27;var(--muted)&#x27;);
         if(j%2===0){
           rows[b].pairTitle.textContent=`Bit ${b+1}`;
-          rows[b].pairState.textContent=`Data ${bits[b]} · ${mismatch?&#x27;Mismatch&#x27;:&#x27;Match&#x27;}`;
+          rows[b].pairState.textContent=`Q${query[b]} D${bits[b]} · ${mismatch?&#x27;Mismatch&#x27;:&#x27;Match&#x27;}`;
           rows[b].frame.setAttribute(&#x27;stroke&#x27;,mismatch?&#x27;var(--viz-series-2)&#x27;:&#x27;color-mix(in srgb, var(--foreground) 30%, var(--background))&#x27;);
-          rows[b].group.setAttribute(&#x27;aria-label&#x27;,`Bit ${b+1}: data ${bits[b]}, query 1, ${mismatch?&#x27;mismatch&#x27;:&#x27;match&#x27;}, two complementary cells on WL${2*b+1} and WL${2*b+2}`);
+          rows[b].group.setAttribute(&#x27;aria-label&#x27;,`Bit ${b+1}: data ${bits[b]}, query ${query[b]}, ${mismatch?&#x27;mismatch&#x27;:&#x27;match&#x27;}, two complementary cells on WL${2*b+1} and WL${2*b+2}`);
         }
         const showSense=sample&amp;&amp;phase&gt;=1;
         r.marker.setAttribute(&#x27;fill&#x27;,showSense&amp;&amp;sample.sensed?&#x27;var(--viz-series-1)&#x27;:&#x27;var(--foreground)&#x27;);
@@ -1747,7 +1755,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       el(&#x27;nand-sigma-value&#x27;).textContent=`= ${sigma.toFixed(3)} V`;
       el(&#x27;nand-vlow&#x27;).value=vlow;el(&#x27;nand-sigma&#x27;).value=sigma;
       root.querySelectorAll(&#x27;[data-bit]&#x27;).forEach(b=&gt;{const k=Number(b.dataset.bit);b.textContent=bits[k];b.setAttribute(&#x27;aria-pressed&#x27;,bits[k]===0?&#x27;true&#x27;:&#x27;false&#x27;);b.setAttribute(&#x27;aria-label&#x27;,`Data bit ${k+1} = ${bits[k]}; click to toggle`);});
-      el(&#x27;nand-h&#x27;).textContent=`Hamming distance = ${bits.filter(b=&gt;b===0).length}`;
+      root.querySelectorAll(&#x27;[data-query-bit]&#x27;).forEach(b=&gt;{const k=Number(b.dataset.queryBit);b.textContent=query[k];b.setAttribute(&#x27;aria-pressed&#x27;,query[k]===0?&#x27;true&#x27;:&#x27;false&#x27;);b.setAttribute(&#x27;aria-label&#x27;,`Query bit ${k+1} = ${query[k]}; click to toggle`);});
+      el(&#x27;nand-h&#x27;).textContent=`Hamming distance = ${bits.filter((b,k)=&gt;b!==query[k]).length}`;
       el(&#x27;nand-count&#x27;).textContent=`Sensed-on = ${count} / ${reads} reads`;
       el(&#x27;nand-current&#x27;).textContent=sample&amp;&amp;phase&gt;=1?`|IBL| = ${sample.zero?&#x27;≈ 0&#x27;:sample.i&lt;1e-6?(sample.i*1e9).toFixed(1)+&#x27; nA&#x27;:(sample.i*1e6).toFixed(2)+&#x27; µA&#x27;}`:&#x27;|IBL| = —&#x27;;
       el(&#x27;nand-play&#x27;).textContent=running?&#x27;Pause&#x27;:&#x27;Play reads&#x27;;
@@ -1757,7 +1766,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       updateDiagram();
     }
     function save(){
-      if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demo:&#x27;NAND random read&#x27;,bits,vreadLow:vlow,sigma,reads,sensedOn:count},privateContent:{bits,vlow,sigma}}).catch(()=&gt;{});
+      if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{demo:&#x27;NAND random read&#x27;,query,bits,vreadLow:vlow,sigma,reads,sensedOn:count},privateContent:{query,bits,vlow,sigma}}).catch(()=&gt;{});
     }
     function pause(){running=false;if(timer){clearInterval(timer);timer=null;}updateUI();}
     function reset(){pause();count=0;reads=0;history=[];seed=42;sample=null;phase=-1;committed=false;el(&#x27;nand-status&#x27;).textContent=&#x27;Settings fixed. Each read generates 4 independent WL perturbations.&#x27;;updateUI();}
@@ -1779,14 +1788,16 @@ html&gt;body{padding:0}&lt;/style&gt;
       committed=true;phase=2;el(&#x27;nand-status&#x27;).textContent=`Complete: ${count} / 500 reads reached Isense.`;updateUI();save();
     });
     root.querySelectorAll(&#x27;[data-bit]&#x27;).forEach(b=&gt;b.addEventListener(&#x27;click&#x27;,()=&gt;{bits[Number(b.dataset.bit)]^=1;reset();save();}));
+    root.querySelectorAll(&#x27;[data-query-bit]&#x27;).forEach(b=&gt;b.addEventListener(&#x27;click&#x27;,()=&gt;{query[Number(b.dataset.queryBit)]^=1;reset();save();}));
     el(&#x27;nand-vlow&#x27;).addEventListener(&#x27;input&#x27;,e=&gt;{vlow=Number(e.target.value);reset();save();});
     el(&#x27;nand-sigma&#x27;).addEventListener(&#x27;input&#x27;,e=&gt;{sigma=Number(e.target.value);reset();save();});
     function restore(state){const p=state?.privateContent||state?.modelContent;if(!p)return;
-      const before=JSON.stringify({bits,vlow,sigma});
+      const before=JSON.stringify({query,bits,vlow,sigma});
+      if(Array.isArray(p.query)&amp;&amp;p.query.length===4&amp;&amp;p.query.every(b=&gt;b===0||b===1))query=[...p.query];
       if(Array.isArray(p.bits)&amp;&amp;p.bits.length===4&amp;&amp;p.bits.every(b=&gt;b===0||b===1))bits=[...p.bits];
       const v=p.vlow??p.vreadLow;if(Number.isFinite(v)&amp;&amp;v&gt;=5.15&amp;&amp;v&lt;=5.65)vlow=v;
       if(Number.isFinite(p.sigma)&amp;&amp;p.sigma&gt;=0&amp;&amp;p.sigma&lt;=.5)sigma=p.sigma;
-      if(JSON.stringify({bits,vlow,sigma})!==before)reset();
+      if(JSON.stringify({query,bits,vlow,sigma})!==before)reset();
     }
     restore(window.openai?.widgetState);
     window.addEventListener(&#x27;openai:set_globals&#x27;,e=&gt;{if(e.detail?.globals?.widgetState)restore(e.detail.globals.widgetState);});

@@ -17,7 +17,7 @@ This demo computes whole-string DC current with a simplified Level-1 series-MOS 
 | Channel-length modulation | 0.02 V⁻¹ |
 | Body connection | Tied to each cell's local source |
 
-From BL to SL, each cell pair consists of a high-driven cell followed by a low-driven cell. For the fixed query `1111`, a matching bit stores `[HVT, LVT]`; a mismatching bit stores `[LVT, HVT]`. No claim is made that the WL driver arrangement has been demonstrated in silicon.
+From BL to SL, the two cells of each bit store `[HVT, LVT]` for Data 1 and `[LVT, HVT]` for Data 0. Query 1 applies `[high read, randomized low read]`; Query 0 applies `[randomized low read, high read]`. A matching bit therefore puts the low read on LVT, while a mismatching bit puts it on HVT. Editing Query changes the WL drives, not the stored thresholds or physical cell order. Equal Hamming distance does not imply identical string current because source voltages and device positions remain part of the calculation. No claim is made that the WL driver arrangement has been demonstrated in silicon.
 
 ## Random reads and sensing
 
@@ -25,7 +25,7 @@ Each low-driven WL receives a fresh independent perturbation per read. The rando
 
 The solver propagates the voltage drops required for a trial current from SL to BL and uses bisection to find the string current at VBL = 0.7 V. The same fixed-current calculation at 100 nA determines sensed-on versus below-threshold. A read contributes one count only when the whole-string current reaches the sensing threshold.
 
-A deterministic seed of 42 is restored when the settings or stored bits change or when Reset is pressed, allowing paired comparisons across conditions. Runs from the same seed are reproducible, not independent experimental trials.
+A deterministic seed of 42 is restored when the settings, Query bits, or stored Data bits change or when Reset is pressed, allowing paired comparisons across conditions. Counts also reset on these changes. Runs from the same seed are reproducible, not independent experimental trials.
 
 ## Limitations
 
