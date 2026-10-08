@@ -1553,8 +1553,10 @@ html&gt;body{padding:0}&lt;/style&gt;
     #nand-random-read-demo .phase-row span { color: var(--muted-foreground); padding-bottom: 6px; border-bottom: 2px solid transparent; }
     #nand-random-read-demo .phase-row span.active { color: var(--foreground); font-weight: 500; border-bottom-color: var(--viz-series-1); }
     #nand-random-read-demo .metrics { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 12px 0; }
-    #nand-random-read-demo svg { display: block; width: 100%; overflow: visible; }
-    #nand-random-read-demo svg text { fill: var(--foreground); font-size: 12px; font-weight: 400; }
+    #nand-random-read-demo .string-diagram, #nand-random-read-demo .voltage-chart { display: block; width: 100%; overflow: visible; }
+    #nand-random-read-demo .string-diagram text, #nand-random-read-demo .voltage-chart text { fill: var(--foreground); font-size: 12px; font-weight: 400; }
+    #nand-random-read-demo .distribution-heading { margin: 18px 0 4px; font-weight: 500; }
+    #nand-random-read-demo .distribution-values { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 8px 0; }
     #nand-random-read-demo .memory-cell { transition: fill 180ms ease; }
     #nand-random-read-demo .history { display: flex; gap: 4px; flex-wrap: wrap; min-height: 20px; margin: 12px 0; }
     #nand-random-read-demo .read-dot { width: 10px; height: 20px; border-radius: 2px; background: var(--muted); }
@@ -1593,6 +1595,15 @@ html&gt;body{padding:0}&lt;/style&gt;
     &lt;/label&gt;
   &lt;/div&gt;
   &lt;div class=&quot;text-small settings-note&quot;&gt;VT,H = 5.312 V · VT,L = −2.369 V · Vread,high = 8 V · VBL = 0.7 V&lt;/div&gt;
+  &lt;div class=&quot;distribution-heading&quot;&gt;Randomized low-read voltage · mismatch cell&lt;/div&gt;
+  &lt;div class=&quot;text-small&quot;&gt;VWL = Vread,low + σz&lt;/div&gt;
+  &lt;div id=&quot;nand-distribution&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;distribution-values text-small tabular-nums&quot; aria-live=&quot;polite&quot;&gt;
+    &lt;span&gt;&lt;i class=&quot;swatch off&quot;&gt;&lt;/i&gt;&lt;span id=&quot;nand-below-threshold&quot;&gt;&lt;/span&gt;&lt;/span&gt;&lt;span&gt;&lt;i class=&quot;swatch&quot;&gt;&lt;/i&gt;&lt;span id=&quot;nand-above-threshold&quot;&gt;&lt;/span&gt;&lt;/span&gt;
+    &lt;span id=&quot;nand-voltage-range&quot;&gt;&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div id=&quot;nand-bias-summary&quot; class=&quot;text-small&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;text-small text-muted&quot;&gt;Gaussian approximation; dashed tails are clipped to ±2σ in reads. Threshold comparison assumes VS = 0, not whole-string sensing; a cell responds to VWL − VS.&lt;/div&gt;
   &lt;div class=&quot;viz-controls&quot; style=&quot;margin-top:12px&quot;&gt;
     &lt;button class=&quot;btn btn-primary&quot; id=&quot;nand-play&quot; type=&quot;button&quot;&gt;Play reads&lt;/button&gt;
     &lt;button class=&quot;btn&quot; id=&quot;nand-step&quot; type=&quot;button&quot;&gt;Single read&lt;/button&gt;
@@ -1618,6 +1629,7 @@ html&gt;body{padding:0}&lt;/style&gt;
     let query=[1,1,1,1], bits=[1,1,1,0], vlow=5.3, sigma=0.15, seed=42;
     let count=0, reads=0, history=[], phase=-1, running=false, timer=null, sample=null, committed=false;
     let svg=null, channelX=0, rows=[], topY=108, rowPitch=46, pairStride=138, width=700;
+    let distribution=null, distributionFrame=0, distributionState=null;
     const svgNS=&#x27;http://www.w3.org/2000/svg&#x27;;
     function rand(){seed=(Math.imul(1664525,seed)+1013904223)&gt;&gt;&gt;0;return seed/4294967296;}
     function zSample(){let z=-6;for(let j=0;j&lt;12;j++)z+=rand();return Math.max(-2,Math.min(2,z));}
@@ -1673,6 +1685,109 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(text!==undefined)n.textContent=text;
       return n;
     }
+    // Exact density/CDF of the 12-uniform approximation used by zSample,
+    // before its endpoint clipping. Reflection avoids cancellation in the upper tail.
+    const choose12=[1,12,66,220,495,792,924,792,495,220,66,12,1];
+    function noiseDensity(z){
+      if(Math.abs(z)&gt;=6)return 0;
+      const t=6-Math.abs(z);let value=0;
+      for(let k=0;k&lt;=Math.floor(t);k++)value+=(k%2?-1:1)*choose12[k]*Math.pow(t-k,11);
+      return Math.max(0,value/39916800);
+    }
+    function noiseCDF(z){
+      if(z&lt;=-6)return 0;if(z&gt;=6)return 1;if(z&gt;0)return 1-noiseCDF(-z);
+      const t=z+6;let value=0;
+      for(let k=0;k&lt;=Math.floor(t);k++)value+=(k%2?-1:1)*choose12[k]*Math.pow(t-k,12);
+      return Math.max(0,Math.min(1,value/479001600));
+    }
+    function probabilityAbove(mean,scale,threshold){
+      if(scale===0)return mean&gt;threshold?1:0;
+      if(threshold&lt;mean-2*scale)return 1;if(threshold&gt;=mean+2*scale)return 0;
+      const cut=(threshold-mean)/scale;
+      return 1-noiseCDF(cut);
+    }
+    function setupDistribution(){
+      const host=el(&#x27;nand-distribution&#x27;);
+      distribution=s(&#x27;svg&#x27;,{class:&#x27;voltage-chart&#x27;,role:&#x27;img&#x27;,&#x27;aria-label&#x27;:&#x27;Randomized low-read voltage distribution relative to the high threshold. This is a gate-voltage comparison, not a string-current prediction.&#x27;});
+      const defs=s(&#x27;defs&#x27;),clip=s(&#x27;clipPath&#x27;,{id:&#x27;nand-voltage-clip&#x27;}),clipRect=s(&#x27;rect&#x27;);clip.append(clipRect);defs.append(clip);distribution.append(defs);
+      const area=s(&#x27;g&#x27;,{&#x27;clip-path&#x27;:&#x27;url(#nand-voltage-clip)&#x27;});distribution.append(area);
+      const below=s(&#x27;path&#x27;,{class:&#x27;voltage-below&#x27;,fill:&#x27;var(--viz-series-2)&#x27;,&#x27;fill-opacity&#x27;:0.18});area.append(below);
+      const above=s(&#x27;path&#x27;,{class:&#x27;voltage-above&#x27;,fill:&#x27;var(--viz-series-1)&#x27;,&#x27;fill-opacity&#x27;:0.18});area.append(above);
+      const tails=s(&#x27;path&#x27;,{class:&#x27;voltage-tails&#x27;,fill:&#x27;none&#x27;,stroke:&#x27;var(--muted-foreground)&#x27;,&#x27;stroke-width&#x27;:1.2,&#x27;stroke-dasharray&#x27;:&#x27;3 4&#x27;});area.append(tails);
+      const curve=s(&#x27;path&#x27;,{class:&#x27;voltage-density&#x27;,fill:&#x27;none&#x27;,stroke:&#x27;var(--foreground)&#x27;,&#x27;stroke-width&#x27;:2});area.append(curve);
+      const endpoints=[0,1].map(()=&gt;{const g=s(&#x27;g&#x27;,{class:&#x27;clip-endpoint&#x27;}),stem=s(&#x27;line&#x27;,{stroke:&#x27;var(--foreground)&#x27;,&#x27;stroke-width&#x27;:1.2}),dot=s(&#x27;circle&#x27;,{r:3.5,fill:&#x27;var(--background)&#x27;,stroke:&#x27;var(--foreground)&#x27;,&#x27;stroke-width&#x27;:1.2});g.append(stem,dot);area.append(g);return {g,stem,dot};});
+      const point=s(&#x27;line&#x27;,{class:&#x27;zero-noise-point&#x27;,stroke:&#x27;var(--foreground)&#x27;,&#x27;stroke-width&#x27;:2.5});area.append(point);
+      const meanLine=s(&#x27;line&#x27;,{class:&#x27;voltage-mean&#x27;,stroke:&#x27;var(--viz-series-2)&#x27;,&#x27;stroke-width&#x27;:1.5,&#x27;stroke-dasharray&#x27;:&#x27;5 4&#x27;});area.append(meanLine);
+      const thresholdLine=s(&#x27;line&#x27;,{class:&#x27;voltage-threshold&#x27;,stroke:&#x27;var(--viz-series-1)&#x27;,&#x27;stroke-width&#x27;:1.5});area.append(thresholdLine);
+      const border=s(&#x27;rect&#x27;,{&#x27;data-chart-frame&#x27;:&#x27;&#x27;,fill:&#x27;none&#x27;,stroke:&#x27;var(--border)&#x27;,&#x27;stroke-width&#x27;:1});distribution.append(border);
+      const axes=s(&#x27;g&#x27;,{class:&#x27;voltage-axes&#x27;});distribution.append(axes);
+      const meanLabel=s(&#x27;text&#x27;,{class:&#x27;voltage-mean-label&#x27;}),thresholdLabel=s(&#x27;text&#x27;,{class:&#x27;voltage-threshold-label&#x27;});distribution.append(meanLabel,thresholdLabel);
+      const xTitle=s(&#x27;text&#x27;,{class:&#x27;axis-title&#x27;,&#x27;data-axis&#x27;:&#x27;x&#x27;,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;Applied low-WL voltage (V)&#x27;);
+      const yTitle=s(&#x27;text&#x27;,{class:&#x27;axis-title&#x27;,&#x27;data-axis&#x27;:&#x27;y&#x27;,&#x27;text-anchor&#x27;:&#x27;middle&#x27;},&#x27;Density (1/V)&#x27;);distribution.append(xTitle,yTitle);
+      host.replaceChildren(distribution);
+      distribution.parts={clipRect,below,above,tails,curve,endpoints,point,meanLine,thresholdLine,border,axes,meanLabel,thresholdLabel,xTitle,yTitle};
+      new ResizeObserver(()=&gt;drawDistribution(false)).observe(host);
+    }
+    function drawDistribution(animate=true){
+      if(!distribution)return;
+      const w=Math.max(280,el(&#x27;nand-distribution&#x27;).getBoundingClientRect().width),previous=distributionState;
+      const target={mean:vlow,scale:sigma,width:w};
+      cancelAnimationFrame(distributionFrame);
+      const moving=animate&amp;&amp;previous&amp;&amp;previous.width===w&amp;&amp;!matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches;
+      const start=performance.now();
+      function render(now){
+        const t=moving?Math.min(1,(now-start)/140):1,e=t*t*(3-2*t);
+        const state={mean:moving?previous.mean+(target.mean-previous.mean)*e:target.mean,scale:moving?previous.scale+(target.scale-previous.scale)*e:target.scale,width:w};
+        paintDistribution(state);distributionState=state;
+        if(t&lt;1)distributionFrame=requestAnimationFrame(render);
+      }
+      render(start);
+      const p=probabilityAbove(vlow,sigma,model.vh);
+      el(&#x27;nand-below-threshold&#x27;).textContent=`VWL ≤ VT,H: ${((1-p)*100).toFixed(1)}%`;
+      el(&#x27;nand-above-threshold&#x27;).textContent=`VWL &gt; VT,H: ${(p*100).toFixed(1)}%`;
+      el(&#x27;nand-voltage-range&#x27;).textContent=`Applied range: ${(vlow-2*sigma).toFixed(3)}–${(vlow+2*sigma).toFixed(3)} V`;
+      const margin=vlow-model.vh;
+      el(&#x27;nand-bias-summary&#x27;).textContent=sigma===0?&#x27;σ = 0: one fixed voltage, no random crossing.&#x27;:Math.abs(margin)&lt;1e-9?&#x27;Center at VT,H: perturbations extend to both sides of the threshold.&#x27;:margin&lt;0?&#x27;Center below VT,H: positive perturbations can cross above it.&#x27;:&#x27;Center above VT,H: negative perturbations can cross below it.&#x27;;
+    }
+    function paintDistribution({mean,scale,width:w}){
+      const p=distribution.parts,left=64,right=w-16,top=62,bottom=226,h=282;
+      distribution.setAttribute(&#x27;viewBox&#x27;,`0 0 ${w} ${h}`);distribution.setAttribute(&#x27;height&#x27;,h);
+      // Fixed across slider settings, derived from all allowed ±2σ sample ranges.
+      // The reference tails outside those ranges never contribute to read samples.
+      const min=Number(el(&#x27;nand-vlow&#x27;).min)-2*Number(el(&#x27;nand-sigma&#x27;).max),max=Number(el(&#x27;nand-vlow&#x27;).max)+2*Number(el(&#x27;nand-sigma&#x27;).max),pad=(max-min)*.04;
+      const lo=min-pad,hi=max+pad,x=v=&gt;left+(v-lo)/(hi-lo)*(right-left);
+      const peak=scale&gt;0?noiseDensity(0)/scale:1,ymax=peak*1.18,y=v=&gt;bottom-v/ymax*(bottom-top);
+      for(const r of [p.border,p.clipRect])for(const [k,v] of Object.entries({x:left,y:top,width:right-left,height:bottom-top}))r.setAttribute(k,v);
+      const samples=(a,b,n=180)=&gt;Array.from({length:n+1},(_,i)=&gt;{const v=a+(b-a)*i/n;return [x(v),y(noiseDensity((v-mean)/scale)/scale)];});
+      const line=pts=&gt;pts.map(([a,b],i)=&gt;`${i?&#x27;L&#x27;:&#x27;M&#x27;}${a.toFixed(3)},${b.toFixed(3)}`).join(&#x27;&#x27;);
+      const fill=(a,b)=&gt;a&gt;=b?&#x27;&#x27;:line([[x(a),bottom],...samples(a,b,100),[x(b),bottom]])+&#x27;Z&#x27;;
+      const a=mean-2*scale,b=mean+2*scale;
+      p.curve.setAttribute(&#x27;d&#x27;,scale&gt;0?line(samples(a,b)): &#x27;&#x27;);
+      p.tails.setAttribute(&#x27;d&#x27;,scale&gt;0?line(samples(lo,a,80))+line(samples(b,hi,80)):&#x27;&#x27;);
+      p.below.setAttribute(&#x27;d&#x27;,scale&gt;0?fill(a,Math.min(b,model.vh)):&#x27;&#x27;);
+      p.above.setAttribute(&#x27;d&#x27;,scale&gt;0?fill(Math.max(a,model.vh),b):&#x27;&#x27;);
+      p.endpoints.forEach(({g,stem,dot},i)=&gt;{
+        g.setAttribute(&#x27;visibility&#x27;,scale&gt;0?&#x27;visible&#x27;:&#x27;hidden&#x27;);
+        const xx=x(i?b:a);stem.setAttribute(&#x27;x1&#x27;,xx);stem.setAttribute(&#x27;x2&#x27;,xx);stem.setAttribute(&#x27;y1&#x27;,bottom);stem.setAttribute(&#x27;y2&#x27;,bottom-10);dot.setAttribute(&#x27;cx&#x27;,xx);dot.setAttribute(&#x27;cy&#x27;,bottom-13.5);
+        g.setAttribute(&#x27;data-tooltip&#x27;,&#x27;Clipped tail samples accumulate at this endpoint; marker height is schematic.&#x27;);
+      });
+      p.point.setAttribute(&#x27;visibility&#x27;,scale===0?&#x27;visible&#x27;:&#x27;hidden&#x27;);p.point.setAttribute(&#x27;x1&#x27;,x(mean));p.point.setAttribute(&#x27;x2&#x27;,x(mean));p.point.setAttribute(&#x27;y1&#x27;,bottom);p.point.setAttribute(&#x27;y2&#x27;,top+14);
+      for(const [l,v] of [[p.meanLine,mean],[p.thresholdLine,model.vh]]){l.setAttribute(&#x27;x1&#x27;,x(v));l.setAttribute(&#x27;x2&#x27;,x(v));l.setAttribute(&#x27;y1&#x27;,top);l.setAttribute(&#x27;y2&#x27;,bottom);}
+      const label=(node,text,v,yy)=&gt;{node.textContent=text;const bw=node.getComputedTextLength(),xx=Math.max(left+bw/2,Math.min(right-bw/2,x(v)));node.setAttribute(&#x27;x&#x27;,xx);node.setAttribute(&#x27;y&#x27;,yy);node.setAttribute(&#x27;text-anchor&#x27;,&#x27;middle&#x27;);};
+      label(p.meanLabel,`Vread,low = ${mean.toFixed(3)} V`,mean,18);
+      label(p.thresholdLabel,`VT,H = ${model.vh.toFixed(3)} V`,model.vh,40);
+      p.xTitle.setAttribute(&#x27;x&#x27;,(left+right)/2);p.xTitle.setAttribute(&#x27;y&#x27;,274);
+      p.yTitle.textContent=scale&gt;0?&#x27;Density (1/V)&#x27;:&#x27;Point mass&#x27;;p.yTitle.setAttribute(&#x27;transform&#x27;,`translate(14 ${(top+bottom)/2}) rotate(-90)`);
+      p.axes.replaceChildren();
+      const ticks=w&lt;440?4:6;
+      for(let j=0;j&lt;ticks;j++){
+        const v=lo+(hi-lo)*j/(ticks-1),xx=x(v);
+        p.axes.append(s(&#x27;line&#x27;,{x1:xx,x2:xx,y1:bottom,y2:bottom+4,stroke:&#x27;var(--border)&#x27;}),s(&#x27;text&#x27;,{x:xx,y:bottom+20,&#x27;text-anchor&#x27;:j===0?&#x27;start&#x27;:j===ticks-1?&#x27;end&#x27;:&#x27;middle&#x27;},v.toFixed(2)));
+      }
+      if(scale&gt;0)for(const v of [0,peak/2,peak]){
+        const yy=y(v);p.axes.append(s(&#x27;text&#x27;,{x:left-8,y:yy+4,&#x27;text-anchor&#x27;:&#x27;end&#x27;},v&lt;10?v.toFixed(1):v.toFixed(0)));
+      }
+    }
     function draw(){
       const host=el(&#x27;nand-diagram&#x27;);
       width=Math.max(280,host.getBoundingClientRect().width);
@@ -1680,7 +1795,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       channelX=compact?Math.round(width*0.52):Math.round(width*0.47);
       const gateLeft=compact?8:24, right=channelX+42;
       const h=topY+3*pairStride+rowPitch+86, core=channelX-9;
-      svg=s(&#x27;svg&#x27;,{viewBox:`0 0 ${width} ${h}`,height:h,role:&#x27;img&#x27;,&#x27;aria-label&#x27;:&#x27;One NAND string with 8 series MOS cells, connected from BL at the top to SL at the bottom. Four complementary cell pairs encode 4 bits.&#x27;});
+      svg=s(&#x27;svg&#x27;,{class:&#x27;string-diagram&#x27;,viewBox:`0 0 ${width} ${h}`,height:h,role:&#x27;img&#x27;,&#x27;aria-label&#x27;:&#x27;One NAND string with 8 series MOS cells, connected from BL at the top to SL at the bottom. Four complementary cell pairs encode 4 bits.&#x27;});
       svg.append(s(&#x27;text&#x27;,{x:gateLeft,y:18},&#x27;WL drive&#x27;));
       svg.append(s(&#x27;text&#x27;,{x:right,y:18},&#x27;Stored state&#x27;));
       svg.append(s(&#x27;rect&#x27;,{x:core-41,y:34,width:82,height:22,rx:4,fill:&#x27;var(--muted)&#x27;}));
@@ -1754,6 +1869,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       el(&#x27;nand-v-value&#x27;).textContent=`= ${vlow.toFixed(3)} V`;
       el(&#x27;nand-sigma-value&#x27;).textContent=`= ${sigma.toFixed(3)} V`;
       el(&#x27;nand-vlow&#x27;).value=vlow;el(&#x27;nand-sigma&#x27;).value=sigma;
+      if(!distributionState||distributionState.mean!==vlow||distributionState.scale!==sigma)drawDistribution();
       root.querySelectorAll(&#x27;[data-bit]&#x27;).forEach(b=&gt;{const k=Number(b.dataset.bit);b.textContent=bits[k];b.setAttribute(&#x27;aria-pressed&#x27;,bits[k]===0?&#x27;true&#x27;:&#x27;false&#x27;);b.setAttribute(&#x27;aria-label&#x27;,`Data bit ${k+1} = ${bits[k]}; click to toggle`);});
       root.querySelectorAll(&#x27;[data-query-bit]&#x27;).forEach(b=&gt;{const k=Number(b.dataset.queryBit);b.textContent=query[k];b.setAttribute(&#x27;aria-pressed&#x27;,query[k]===0?&#x27;true&#x27;:&#x27;false&#x27;);b.setAttribute(&#x27;aria-label&#x27;,`Query bit ${k+1} = ${query[k]}; click to toggle`);});
       el(&#x27;nand-h&#x27;).textContent=`Hamming distance = ${bits.filter((b,k)=&gt;b!==query[k]).length}`;
@@ -1799,13 +1915,14 @@ html&gt;body{padding:0}&lt;/style&gt;
       if(Number.isFinite(p.sigma)&amp;&amp;p.sigma&gt;=0&amp;&amp;p.sigma&lt;=.5)sigma=p.sigma;
       if(JSON.stringify({query,bits,vlow,sigma})!==before)reset();
     }
+    setupDistribution();
     restore(window.openai?.widgetState);
     window.addEventListener(&#x27;openai:set_globals&#x27;,e=&gt;{if(e.detail?.globals?.widgetState)restore(e.detail.globals.widgetState);});
     new ResizeObserver(draw).observe(el(&#x27;nand-diagram&#x27;));
     function animate(t){if(svg&amp;&amp;sample&amp;&amp;phase===1&amp;&amp;sample.sensed){const f=svg.querySelector(&#x27;#nand-flow&#x27;);f.setAttribute(&#x27;cy&#x27;,57+((t%850)/850)*(topY+3*pairStride+rowPitch-31));}requestAnimationFrame(animate);}
     updateUI();requestAnimationFrame(animate);
     // Expose the local model for implementation checks, not a silicon-calibrated API.
-    root.nandModel={solve,nextSample,model};
+    root.nandModel={solve,nextSample,model,noiseDensity,noiseCDF,probabilityAbove};
   })();
   &lt;/script&gt;
 &lt;/div&gt;

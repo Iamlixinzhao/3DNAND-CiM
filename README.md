@@ -9,6 +9,7 @@ An animation of randomized word-line voltages and repeated current sensing in on
 - 4 bits / 8 cells, using two complementary threshold-state cells per bit.
 - Click the Query or Data bits to change mismatch positions; Query switches the complementary WL drives while Data sets the stored threshold states.
 - Adjustable low-read voltage and random-voltage scale.
+- Live Gaussian-approximation diagram: voltage center, width, ±2σ clipping, and voltage mass on either side of the high threshold.
 - Animated sampling, whole-string current sensing, and count accumulation.
 - Single-read and 500-read modes.
 

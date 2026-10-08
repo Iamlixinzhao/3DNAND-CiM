@@ -23,6 +23,10 @@ From BL to SL, the two cells of each bit store `[HVT, LVT]` for Data 1 and `[LVT
 
 Each low-driven WL receives a fresh independent perturbation per read. The random variable is the sum of 12 independent uniforms minus 6, clipped to [-2, 2], then multiplied by sigma and added to the low-read voltage. This approximates Gaussian randomization. Sigma is the pre-clipping scale, not the exact post-clipping standard deviation. High-driven WLs remain fixed.
 
+The live distribution diagram uses the analytical density and CDF of this same 12-uniform approximation, not an unrelated ideal Gaussian. Solid curves and shaded regions show the continuous density within the ±2σ clipping bounds; dashed tails are not directly sampled and accumulate as point masses at the two bounds. Hollow endpoint markers indicate those point masses, with schematic marker heights. The percentages include endpoint masses and use the strict comparison `VWL > VT,H`. At sigma = 0 the distribution collapses to a point, rather than a finite-width Gaussian. The fixed voltage axis spans all allowed clipped sample ranges so changing sigma visibly changes the curve width.
+
+This diagram compares gate voltage with VT,H assuming VS = 0. It is not a probability of whole-string conduction or a replacement for current sensing. In the series circuit, a cell's overdrive depends on `VWL - VS - VT`; the whole string must still reach 100 nA to contribute a count. No circuit parameters or random-number sequence were changed to add the diagram.
+
 The solver propagates the voltage drops required for a trial current from SL to BL and uses bisection to find the string current at VBL = 0.7 V. The same fixed-current calculation at 100 nA determines sensed-on versus below-threshold. A read contributes one count only when the whole-string current reaches the sensing threshold.
 
 A deterministic seed of 42 is restored when the settings, Query bits, or stored Data bits change or when Reset is pressed, allowing paired comparisons across conditions. Counts also reset on these changes. Runs from the same seed are reproducible, not independent experimental trials.
